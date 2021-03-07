@@ -53,7 +53,7 @@ char* readHeader(const char* fname) {
 		cur = fread(data, n, 1, fp);
 	}
 	data[cur] = '\0';
-	if( strcmp(&data[cur-4], "\r\n\r\n")!=0 ) {
+	while( strcmp(&data[cur-4], "\r\n\r\n")!=0 ) {
 		// request must end with one empty line
 		data[cur++] = '\r';
 		data[cur++] = '\n';
@@ -75,7 +75,7 @@ char* getResponse(char* ipstr, short port) { // the default port is 80 for http
 		int i = 0;
 		while(p[i] && p[i]==' ') i++;
 		int j = i;
-		while(p[j] && p[j]!=':' && p[j]!=' ' && p[j]!='\n') j++;
+		while(p[j] && p[j]!=':' && p[j]!=' ' && p[j]!='\r' ) j++;
 		ipstr = calloc(j-i+1,1);
 		strncpy(ipstr, &p[i], j-i);
 		if(p[j] && p[j]==':') {
@@ -99,7 +99,7 @@ char* getResponse(char* ipstr, short port) { // the default port is 80 for http
 	char* cur = rdata;
 	time_t pre, now;
 	pre = time(NULL);
-	double LongestTimeWait = 0.5; // the time client will wait for message
+	double LongestTimeWait = 1.0; // the time client will wait for message
 	cur = rdata+data_len;
 	int rsize = recv(csock, cur, alloc_len-data_len, 0); // the first data must be blocked
 	while(1) {
