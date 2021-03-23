@@ -1,5 +1,5 @@
 // get response 
-char* getResponse(char* ipstr, short port);
+char* getResponse(char* ipstr, short port, char* request);
 
 // store your header in header.txt, then read with following function
 // this request header can be copied from CTRL+SHIFT+I in chrome

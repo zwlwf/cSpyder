@@ -65,30 +65,33 @@ char* readHeader(const char* fname) {
 	return data;
 }
 
-char* getResponse(char* ipstr, short port) { // the default port is 80 for http
-	char* req = readHeader("header.txt"); // store the header in header.txt, add an empty line in the end
-	do {
-		// try to get host and port
-		char* p= strstr(req, "Host:");
-		if(!p) break;
-		p+= strlen("Host:");
-		int i = 0;
-		while(p[i] && p[i]==' ') i++;
-		int j = i;
-		while(p[j] && p[j]!=':' && p[j]!=' ' && p[j]!='\r' ) j++;
-		ipstr = calloc(j-i+1,1);
-		strncpy(ipstr, &p[i], j-i);
-		if(p[j] && p[j]==':') {
-			port=0;
-			j++;
-			while(p[j] && p[j]>='0' && p[j]<='9') {
-				port = port*10+(p[j]^48);
-				j++; 
+char* getResponse(char* ipstr, short port, char* req) { // the default port is 80 for http
+	if( !req ) {
+		// req not give, read frem header.txt
+		req = readHeader("header.txt"); // store the header in header.txt, add an empty line in the end
+		do {
+			// try to get host and port
+			char* p= strstr(req, "Host:");
+			if(!p) break;
+			p+= strlen("Host:");
+			int i = 0;
+			while(p[i] && p[i]==' ') i++;
+			int j = i;
+			while(p[j] && p[j]!=':' && p[j]!=' ' && p[j]!='\r' ) j++;
+			ipstr = calloc(j-i+1,1);
+			strncpy(ipstr, &p[i], j-i);
+			if(p[j] && p[j]==':') {
+				port=0;
+				j++;
+				while(p[j] && p[j]>='0' && p[j]<='9') {
+					port = port*10+(p[j]^48);
+					j++; 
+				}
 			}
-		}
-		printf("host:%s and port:%d in header file used!\n", ipstr, port);
-		
-	} while(0);
+			printf("host:%s and port:%d in header file used!\n", ipstr, port);
+			
+		} while(0);
+	}
 	
 	int csock = createSock_client(ipstr, port);
 	send(csock, req, strlen(req), 0);
@@ -119,7 +122,7 @@ char* getResponse(char* ipstr, short port) { // the default port is 80 for http
 	rdata[data_len] = '\0';
 	//printf("%s\n", rdata);
 
-	free(req);
+	//free(req);
 	close(csock);
 	return rdata;
 }
