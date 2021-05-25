@@ -10,6 +10,51 @@
 #include <netinet/in.h>
 #include <ctype.h>
 
+static int get_ip_port_path(const char* url,
+  char**ip,
+  char**port,
+  char**path ) {
+	const char *s=url;
+	if(strncmp(url, "http://", strlen("http://")) == 0) {
+		s+= strlen("http://");
+	} else if(strncmp(url, "https://", strlen("https://")) == 0) {
+		s+= strlen("https://");
+	} 
+	int n = strlen(s);
+	int i=0;
+	while( i<n && s[i]!='/' && s[i]!=':') i++;
+	*ip = calloc(i+1,1);
+	strncpy(*ip, s, i);
+	if( i>=n ) { // no path, no port
+		*port = malloc(20);
+		strcpy(*port, "80");
+		*path = malloc(20);
+		strcpy(*path, "/");
+		return 0;
+	}
+
+	if(s[i]==':') {
+		i++;
+		int j=i;
+		while(i<n && s[i]!='/') i++;
+		*port = calloc(i-j+1,1);
+		strncpy(*port, s+j, i-j);
+	} else {
+		*port = malloc(20);
+		sprintf(*port, "80");
+	}
+
+	if(i>=n) {
+		*path = malloc(20);
+		strcpy(*path, "/");
+	} else {
+		*path = calloc( strlen(s+i)+1, 1 );
+		strcpy(*path, s+i);
+	}
+
+	return 0;
+}
+
 int createSock_client( const char* ipstr, short port) {
 	int sock = socket( AF_INET, SOCK_STREAM, 0);
 	struct addrinfo hints, *sock_addr;
