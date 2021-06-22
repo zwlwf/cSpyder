@@ -22,9 +22,11 @@ class Request {
 	char* port;
 	char* path;
 	std::unordered_map<std::string, std::string> header;
+	void extract_key_value(char*);
 	void initHeader();
 public:
 	Request(const char* url);
+	int Connect();
 	void Send();
 	void* RecvBlock(); // receive all content
 	int Recv();

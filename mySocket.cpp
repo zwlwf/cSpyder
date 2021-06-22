@@ -11,6 +11,21 @@
 
 using namespace std;
 
+char* trim( char*s) {
+	while(*s && isspace(*s)) s++;
+	int i = strlen(s);
+	for(--i; i>=0; i--) if( !isspace(s[i]) ) break;
+	s[i+1] = '\0';
+	return s;
+}
+
+void Request::extract_key_value(char*s) {
+	char* key = trim( strtok(s, ":")) ;
+	char* val = strtok(NULL, "\r");
+	if(strcmp(key, "Set-Cookie")==0 ) header["Cookie"] += string(val);
+	else header[key] = string(val);
+}
+
 static int get_ip_port_path(const char* url,
   char**ip,
   char**port,
@@ -78,6 +93,7 @@ mySocket::mySocket(const char* ipstr, const char* portstr) {
 		printf("Error in connect to socket");
 		exit(-1);
 	}
+	printf("Connected!\n");
 }
 
 // 读之前需要很确信是有一个完整行的, it can be used in HTTP protocol
@@ -134,7 +150,7 @@ void * mySocket::readAsLongAsICan(int *len) {
 
 void Request::initHeader() {
 	header["Host"] = string(ip);
-	header["Connection]"] = "keep-alive";
+	header["Connection"] = "keep-alive";
 	header["User-Agent"]=" Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36";
 }
 
@@ -147,15 +163,20 @@ Request::Request(const char* url) {
 	sock = mySocket(ip, port); // 这里是construct or copy callback?
 }
 
+int Request::Connect() {
+	sock = mySocket(ip, port);
+	return 0;
+}
+
 void Request::Send() {
 	// construct header and send
-	stringstream os;
+	ostringstream os;
 	os<<"GET "<<path<<" HTTP/1.1\r\n";
 	for(auto kv : header ) 
 		os<<kv.first<<": "<<kv.second<<"\r\n";
 	os<<"\r\n";
-
-	const char* ss = os.str().c_str();
+	string tmps = os.str();
+	const char* ss = tmps.c_str();
 #ifdef DEBUG
 	printf("The message send!\n%s", ss);
 #endif
@@ -174,16 +195,38 @@ int Request::Recv() {
 	int status=0;
 	char dummy[512];
 	sscanf(responseLine, "%s %d", dummy,&status);
-	if( status == 200 ) {
-	}
 
+	header["Cookie"] = "";
 	while(1) {
 		char* line = sock.readLine();
 		if( strlen(line)==0 ) break;
+		extract_key_value(line);
+		free(line);
 	} 
 
-	if( header.count( "Set-Cookie" ) ) {
-		return ;
+	if(header.count("Content-Length")) {
+		int content_len = atoi(header["Content-Length"].c_str());
+		char* html = (char*) malloc(content_len+10);
+		html[content_len] = '\0';
+		while(content_len>0) {
+			int rz = recv(sock.sock, html, content_len, 0);
+			content_len-=rz;
+		}
+		printf("\n\n\n Data Received!\n %s", html);
+		free(html);
+	} else {
+		void* html = RecvBlock();
+		free(html);
 	}
+
+/* TODO
+	if(status==302) { // set cookie and send back
+		printf("Send back again\n");
+		Connect();
+		Send();
+		Recv();
+	}
+*/
 	// read response body
+	return 0;
 }
